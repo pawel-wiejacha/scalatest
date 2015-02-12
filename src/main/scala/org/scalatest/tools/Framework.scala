@@ -876,14 +876,18 @@ class Framework extends SbtFramework {
         paths.exists(path => td.fullyQualifiedName.startsWith(path) && td.fullyQualifiedName.substring(path.length).lastIndexOf('.') <= 0)
       }
       
-    def tasks(taskDefs: Array[TaskDef]): Array[Task] = 
-      for { 
+    def tasks(taskDefs: Array[TaskDef]): Array[Task] = {
+      println("senu: ScalaTest Runner.tasks: %s".
+        format(taskDefs.toList map (_.fullyQualifiedName())))
+      for {
         taskDef <- if (wildcard.isEmpty && membersOnly.isEmpty) taskDefs else (filterWildcard(wildcard, taskDefs) ++ filterMembersOnly(membersOnly, taskDefs)).distinct
         val task = createTask(taskDef)
         if task.shouldDiscover
       } yield task
+    }
     
     def done = {
+      println("senu: ScalaTest Runner.done")
       if (!isDone.getAndSet(true)) {
 
         // Wait until all status is completed
@@ -1051,6 +1055,7 @@ class Framework extends SbtFramework {
    * @throws IllegalArgumentException when invalid or unsupported argument is passed
    */
   def runner(args: Array[String], remoteArgs: Array[String], testClassLoader: ClassLoader): SbtRunner = {
+    println("senu: ScalaTest Framework.runner: args=%s, remoteArgs=%s" format (args.toList, remoteArgs.toList) )
 
     val ParsedArgs(
       runpathArgs,
