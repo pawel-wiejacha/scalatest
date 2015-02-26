@@ -139,7 +139,7 @@ object ScalatestBuild extends Build {
 
   def scalatestLibraryDependencies =
     Seq(
-      "org.scala-sbt" % "test-interface" % "1.0" % "optional",
+      "org.scala-sbt" % "test-interface" % "1.1-SNAPSHOT" % "optional",
       "org.easymock" % "easymockclassextension" % "3.1" % "optional",
       "org.jmock" % "jmock-legacy" % "2.5.1" % "optional",
       "org.mockito" % "mockito-all" % "1.9.0" % "optional",
