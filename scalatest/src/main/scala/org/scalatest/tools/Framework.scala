@@ -264,7 +264,8 @@ class Framework extends SbtFramework {
     presentReminder: Boolean,
     presentReminderWithShortStackTraces: Boolean,
     presentReminderWithFullStackTraces: Boolean,
-    presentReminderWithoutCanceledTests: Boolean
+    presentReminderWithoutCanceledTests: Boolean,
+    stopper: Stopper
   ) extends Distributor {
 
     private val taskQueue = new LinkedBlockingQueue[Task]()
@@ -304,7 +305,8 @@ class Framework extends SbtFramework {
           presentReminder,
           presentReminderWithShortStackTraces,
           presentReminderWithFullStackTraces,
-          presentReminderWithoutCanceledTests
+          presentReminderWithoutCanceledTests,
+          stopper
         )
       taskQueue.put(nestedTask)
       status
@@ -383,7 +385,8 @@ class Framework extends SbtFramework {
     presentReminder: Boolean,
     presentReminderWithShortStackTraces: Boolean,
     presentReminderWithFullStackTraces: Boolean,
-    presentReminderWithoutCanceledTests: Boolean
+    presentReminderWithoutCanceledTests: Boolean,
+    stopper: Stopper
   ): Array[Task] = {
     val suiteStartTime = System.currentTimeMillis
     val suiteClass = suite.getClass
@@ -435,7 +438,7 @@ class Framework extends SbtFramework {
     if (!suite.isInstanceOf[DistributedTestRunnerSuite])
       report(SuiteStarting(tracker.nextOrdinal(), suite.suiteName, suite.suiteId, Some(suiteClass.getName), formatter, Some(TopOfClass(suiteClass.getName))))
 
-    val args = Args(report, Stopper.default, filter, configMap, None, tracker, Set.empty)
+    val args = Args(report, stopper, filter, configMap, None, tracker, Set.empty)
     val distributor =
       new RecordingDistributor(
         taskDefinition, 
@@ -458,7 +461,8 @@ class Framework extends SbtFramework {
         presentReminder,
         presentReminderWithShortStackTraces,
         presentReminderWithFullStackTraces,
-        presentReminderWithoutCanceledTests
+        presentReminderWithoutCanceledTests,
+        stopper
       )
     
     try {
@@ -527,7 +531,8 @@ class Framework extends SbtFramework {
     presentReminder: Boolean,
     presentReminderWithShortStackTraces: Boolean,
     presentReminderWithFullStackTraces: Boolean,
-    presentReminderWithoutCanceledTests: Boolean
+    presentReminderWithoutCanceledTests: Boolean,
+    stopper: Stopper
   ) extends Task {
     
     def tags = 
@@ -574,7 +579,8 @@ class Framework extends SbtFramework {
         presentReminder,
         presentReminderWithShortStackTraces,
         presentReminderWithFullStackTraces,
-        presentReminderWithoutCanceledTests
+        presentReminderWithoutCanceledTests,
+        stopper
       )
     }
     
@@ -603,7 +609,8 @@ class Framework extends SbtFramework {
     presentReminderWithShortStackTraces: Boolean,
     presentReminderWithFullStackTraces: Boolean,
     presentReminderWithoutCanceledTests: Boolean,
-    configSet: Set[ReporterConfigParam]
+    configSet: Set[ReporterConfigParam],
+    stopper : Stopper
   ) extends Task {
     
     def loadSuiteClass = {
@@ -700,7 +707,8 @@ class Framework extends SbtFramework {
           presentReminder,
           presentReminderWithShortStackTraces,
           presentReminderWithFullStackTraces,
-          presentReminderWithoutCanceledTests
+          presentReminderWithoutCanceledTests,
+          stopper
         )
       }
        else 
@@ -830,14 +838,15 @@ class Framework extends SbtFramework {
     detectSlowpokes: Boolean,
     slowpokeDetectionDelay: Long,
     slowpokeDetectionPeriod: Long
-  ) extends sbt.testing.Runner {
+  ) extends sbt.testing.Runner with sbt.testing.Stoppable {
     val isDone = new AtomicBoolean(false)
     val serverThread = new AtomicReference[Option[Thread]](None)
     val statusList = new LinkedBlockingQueue[Status]()
     val tracker = new Tracker
     val summaryCounter = new SummaryCounter
     val runStartTime = System.currentTimeMillis
-    
+    val stopper = Stopper.default
+
     val dispatchReporter = ReporterFactory.getDispatchReporter(repConfig, None, None, loader, Some(resultHolder), detectSlowpokes, slowpokeDetectionDelay, slowpokeDetectionPeriod) 
     
     dispatchReporter(RunStarting(tracker.nextOrdinal(), 0, configMap))
@@ -865,7 +874,8 @@ class Framework extends SbtFramework {
           presentReminderWithShortStackTraces,
           presentReminderWithFullStackTraces,
           presentReminderWithoutCanceledTests,
-          configSet
+          configSet,
+          stopper
         )
     
     private def filterWildcard(paths: List[String], taskDefs: Array[TaskDef]): Array[TaskDef] = 
@@ -882,7 +892,12 @@ class Framework extends SbtFramework {
         val task = createTask(taskDef)
         if task.shouldDiscover
       } yield task
-    
+
+
+    override def stop() : Unit = {
+
+    }
+
     def done = {
       if (!isDone.getAndSet(true)) {
 
